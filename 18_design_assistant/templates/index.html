@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ chatbot_title }}</title>
+<style>
+:root{--accent:{{ ui_accent }};--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#697386;--border:#e6e9f0}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(135deg,var(--bg),#eef2ff);color:var(--text);min-height:100vh}
+.app{width:min(1100px,94vw);margin:0 auto;padding:24px 0;display:flex;flex-direction:column;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;background:rgba(255,255,255,.86);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:22px;box-shadow:0 12px 35px rgba(31,41,55,.08)}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;border-radius:15px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;box-shadow:0 8px 18px color-mix(in srgb,var(--accent) 30%,transparent)}
+h1{font-size:19px;margin:0}.domain{font-size:12px;color:var(--muted);margin-top:3px}
+button{border:0;border-radius:12px;padding:11px 15px;font-weight:700;cursor:pointer}.clear{background:#f0f2f6;color:#333}.clear:hover{background:#e5e8ee}
+.chat{flex:1;margin:18px 0;padding:20px;background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:22px;overflow:auto;min-height:58vh;max-height:68vh}
+.msg{display:flex;margin:12px 0}.msg.user{justify-content:flex-end}.bubble{max-width:min(78%,720px);padding:13px 15px;border-radius:17px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}.model .bubble{background:#fff;border:1px solid var(--border);border-bottom-left-radius:5px}.user .bubble{background:var(--accent);color:#fff;border-bottom-right-radius:5px}
+.composer{display:flex;gap:10px;background:#fff;padding:10px;border:1px solid var(--border);border-radius:18px;box-shadow:0 12px 30px rgba(31,41,55,.08)}textarea{resize:none;border:0;outline:0;flex:1;font:inherit;padding:10px 12px;min-height:46px;max-height:140px}#send{background:var(--accent);color:#fff;min-width:82px}.hint{text-align:center;color:var(--muted);font-size:11px;margin:9px}
+.typing{opacity:.65;font-style:italic}
+@media(max-width:650px){.app{width:96vw;padding:12px 0}header{border-radius:17px;padding:14px}.chat{padding:13px;margin:12px 0;min-height:65vh}.bubble{max-width:88%}.logo{width:40px;height:40px}h1{font-size:16px}.composer{padding:7px}#send{min-width:68px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand"><div class="logo">{{ chatbot_title[0] }}</div><div><h1>{{ chatbot_title }}</h1><div class="domain">{{ domain }}</div></div></div><button class="clear" id="clear">Clear</button></header>
+<main class="chat" id="chat"><div class="msg model"><div class="bubble">{{ welcome_message }}</div></div></main>
+<form class="composer" id="form"><textarea id="message" placeholder="Ask a {{ domain }} question..." rows="1"></textarea><button id="send">Send</button></form>
+<div class="hint">Temporary session chat • No login required</div>
+</div>
+<script>
+const chat=document.getElementById('chat'), form=document.getElementById('form'), input=document.getElementById('message'), send=document.getElementById('send');
+function add(role,text,extra=''){const row=document.createElement('div');row.className='msg '+role;const b=document.createElement('div');b.className='bubble '+extra;b.textContent=text;row.appendChild(b);chat.appendChild(row);chat.scrollTop=chat.scrollHeight;return row}
+form.addEventListener('submit',async e=>{e.preventDefault();const text=input.value.trim();if(!text)return;add('user',text);input.value='';send.disabled=true;const typing=add('model','Thinking…','typing');try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});const d=await r.json();typing.remove();add('model',d.answer||d.error||'Something went wrong.')}catch(err){typing.remove();add('model','Network error. Please try again.')}finally{send.disabled=false;input.focus()}});
+document.getElementById('clear').onclick=async()=>{await fetch('/api/clear',{method:'POST'});chat.innerHTML='';add('model',{{ welcome_message|tojson }});input.focus()};
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
+</script>
+</body></html>
